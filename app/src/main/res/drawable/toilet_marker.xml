@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="?android:colorPrimary" />
+            <stroke
+                android:width="2dp"
+                android:color="?android:textColorPrimary" />
+            <size
+                android:width="40dp"
+                android:height="40dp" />
+        </shape>
+    </item>
+    <item
+        android:drawable="@drawable/toilet_solid"
+        android:width="24dp"
+        android:height="24dp"
+        android:gravity="center"/>
+</layer-list>
