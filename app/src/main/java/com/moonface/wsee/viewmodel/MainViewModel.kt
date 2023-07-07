@@ -19,6 +19,8 @@ class MainViewModel : ViewModel() {
     var toilets: List<Toilet> by mutableStateOf(emptyList())
         private set
 
+    var selectedToilet: Toilet? by mutableStateOf(null)
+
     fun searchToilets() = viewModelScope.launch {
         toilets = repository.search(ToiletQuery(cameraLocation!!, 10))
     }

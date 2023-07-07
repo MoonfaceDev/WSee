@@ -29,11 +29,11 @@ data class Location(val latitude: Float, val longitude: Float) {
 
 data class Cost(val amount: Float, val currency: String)
 
-enum class ToiletOwnerType(val type: String) {
-    PUBLIC("public"),
-    RESTAURANT("restaurant"),
-    HOTEL("hotel"),
-    ATTRACTION("attraction"),
+enum class ToiletOwnerType(val value: String) {
+    @SerializedName("public") PUBLIC("public"),
+    @SerializedName("restaurant") RESTAURANT("restaurant"),
+    @SerializedName("hotel") HOTEL("hotel"),
+    @SerializedName("attraction") ATTRACTION("attraction"),
 }
 
 data class ToiletOwner(val name: String, val type: ToiletOwnerType)
@@ -42,6 +42,7 @@ data class Toilet(
     val cost: Cost? = null,
     val location: Location,
     val rating: Float? = null,
+    @SerializedName("review_count") var reviewCount: Int = 0,
     @SerializedName("report_date") val reportDate: Date,
     val reporter: String,
     @SerializedName("website_url") val websiteUrl: String? = null,
@@ -49,9 +50,5 @@ data class Toilet(
 ) {
     fun getTitle(): String {
         return owner?.name ?: "Public toilet"
-    }
-
-    fun getRatingDisplay(): String {
-        return if (rating != null) "⭐".repeat(rating.toInt()) else "No rating"
     }
 }
