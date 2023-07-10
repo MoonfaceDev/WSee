@@ -29,6 +29,11 @@ data class Location(val latitude: Float, val longitude: Float) {
         return location
     }
 
+    fun distanceTo(other: Location): Float {
+        // meters
+        return toAndroidLocation().distanceTo(other.toAndroidLocation())
+    }
+
     companion object {
         fun fromAndroidLocation(location: android.location.Location): Location {
             return Location(location.latitude.toFloat(), location.longitude.toFloat())
@@ -42,7 +47,7 @@ data class Location(val latitude: Float, val longitude: Float) {
 
 data class Cost(val amount: Float, val currency: String)
 
-enum class ToiletOwnerType(val value: String) {
+enum class PlaceType(private val value: String) {
     @SerializedName("public")
     PUBLIC("public"),
 
@@ -55,6 +60,12 @@ enum class ToiletOwnerType(val value: String) {
     @SerializedName("attraction")
     ATTRACTION("attraction");
 
+    fun getLabel(): String {
+        return value.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase() else it.toString()
+        }
+    }
+
     fun getIcon(): Int {
         return when (value) {
             PUBLIC.value -> R.drawable.public_toilet
@@ -66,19 +77,21 @@ enum class ToiletOwnerType(val value: String) {
     }
 }
 
-data class ToiletOwner(val name: String, val type: ToiletOwnerType)
+data class Place(
+    val address: String? = null,
+    val location: Location,
+    val name: String? = null,
+    val type: PlaceType = PlaceType.PUBLIC,
+)
 
 data class Toilet(
     val cost: Cost? = null,
-    val location: Location,
+    val place: Place,
     val rating: Float? = null,
-    @SerializedName("review_count") var reviewCount: Int = 0,
     @SerializedName("report_date") val reportDate: Date,
-    val reporter: String,
-    @SerializedName("website_url") val websiteUrl: String? = null,
-    val owner: ToiletOwner? = null,
+    @SerializedName("review_count") var reviewCount: Int = 0,
 ) {
     fun getTitle(): String {
-        return owner?.name ?: "Public toilet"
+        return place.name ?: "Public toilet"
     }
 }

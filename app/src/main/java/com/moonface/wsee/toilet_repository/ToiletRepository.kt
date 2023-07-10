@@ -2,6 +2,7 @@ package com.moonface.wsee.toilet_repository
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.moonface.wsee.models.CreateToilet
 import com.moonface.wsee.models.Toilet
 import com.moonface.wsee.models.ToiletQuery
 import retrofit2.Retrofit
@@ -11,6 +12,9 @@ import retrofit2.http.POST
 
 
 interface ToiletApi {
+    @POST("toilets")
+    suspend fun create(@Body data: CreateToilet)
+
     @POST("toilets/search")
     suspend fun search(@Body query: ToiletQuery): List<Toilet>
 }
@@ -18,6 +22,10 @@ interface ToiletApi {
 class ToiletRepository : IToiletRepository {
     private val api: ToiletApi by lazy {
         createApi()
+    }
+
+    override suspend fun create(data: CreateToilet) {
+        api.create(data)
     }
 
     override suspend fun search(query: ToiletQuery): List<Toilet> {

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -21,20 +22,29 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.gms.location.LocationListener
+import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.android.libraries.places.api.Places
 import com.google.maps.android.compose.CameraMoveStartedReason
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -42,10 +52,12 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.moonface.wsee.composables.AddToiletDialog
 import com.moonface.wsee.composables.Text
 import com.moonface.wsee.composables.ToiletSheet
 import com.moonface.wsee.models.Location
 import com.moonface.wsee.viewmodel.MainViewModel
+
 
 val MAP_STYLE = """
     [
@@ -89,10 +101,16 @@ class MainActivity : ComponentActivity() {
                 if (isSystemInDarkTheme()) dynamicDarkColorScheme(context) else dynamicLightColorScheme(
                     context
                 )
+            val viewModel = viewModel { MainViewModel() }
+            Places.initialize(applicationContext, getAPIKey())
             MaterialTheme(colorScheme = colorScheme) {
-                MainScreen(MainViewModel())
+                MainScreen(viewModel)
             }
         }
+    }
+
+    private fun getAPIKey(): String {
+        return BuildConfig.MAPS_API_KEY
     }
 }
 
@@ -102,19 +120,33 @@ class MainActivity : ComponentActivity() {
 private fun MainScreen(viewModel: MainViewModel) {
     val locationPermissions = rememberMultiplePermissionsState(permissions = LOCATION_PERMISSIONS)
     val context = LocalContext.current
-    LaunchedEffect(locationPermissions.allPermissionsGranted) {
+    DisposableEffect(locationPermissions.allPermissionsGranted) {
         if (locationPermissions.allPermissionsGranted) {
             val client = LocationServices.getFusedLocationProviderClient(context)
+
             client.lastLocation.addOnSuccessListener { location: android.location.Location? ->
-                viewModel.cameraLocation = Location.fromAndroidLocation(location!!)
+                if (location != null) {
+                    viewModel.cameraLocation = Location.fromAndroidLocation(location)
+                }
+            }
+
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000L)
+                .build()
+            val listener = LocationListener {
+                viewModel.myLocation = Location.fromAndroidLocation(it)
+            }
+            client.requestLocationUpdates(locationRequest, listener, Looper.getMainLooper())
+            onDispose {
+                client.removeLocationUpdates(listener)
             }
         } else {
             locationPermissions.launchMultiplePermissionRequest()
+            onDispose { }
         }
     }
 
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(0.0, 0.0), 15F)
+        position = CameraPosition.fromLatLngZoom(viewModel.cameraLocation.toLatLng(), 15F)
     }
 
     LaunchedEffect(cameraPositionState.isMoving) {
@@ -124,13 +156,10 @@ private fun MainScreen(viewModel: MainViewModel) {
     }
 
     LaunchedEffect(viewModel.cameraLocation) {
-        if (viewModel.cameraLocation != null) {
-            cameraPositionState.position =
-                CameraPosition.fromLatLngZoom(
-                    viewModel.cameraLocation!!.toLatLng(), cameraPositionState.position.zoom
-                )
-            viewModel.searchToilets()
-        }
+        cameraPositionState.position = CameraPosition.fromLatLngZoom(
+            viewModel.cameraLocation.toLatLng(), cameraPositionState.position.zoom
+        )
+        viewModel.searchToilets()
     }
 
     GoogleMap(
@@ -147,7 +176,7 @@ private fun MainScreen(viewModel: MainViewModel) {
     ) {
         viewModel.toilets.forEach { toilet ->
             Marker(
-                state = MarkerState(position = toilet.location.toLatLng()),
+                state = MarkerState(position = toilet.place.location.toLatLng()),
                 icon = bitmapDescriptorFromVector(LocalContext.current, R.drawable.toilet_marker),
                 onClick = {
                     viewModel.selectedToilet = toilet
@@ -155,6 +184,12 @@ private fun MainScreen(viewModel: MainViewModel) {
                 },
             )
         }
+    }
+
+    var addDialogOpen by remember { mutableStateOf(false) }
+
+    if (addDialogOpen) {
+        AddToiletDialog(onClose = { addDialogOpen = false })
     }
 
     Column(
@@ -166,7 +201,10 @@ private fun MainScreen(viewModel: MainViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ExtendedFloatingActionButton(
-            onClick = {}
+            onClick = {
+                // coroutineScope.launch { addDialogPlace = selectPlace() }
+                addDialogOpen = true
+            }
         ) {
             Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
             Text(text = "Add Toilet")

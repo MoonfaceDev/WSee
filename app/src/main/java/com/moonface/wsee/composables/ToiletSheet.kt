@@ -1,8 +1,5 @@
 package com.moonface.wsee.composables
 
-import android.annotation.SuppressLint
-import android.location.Location
-import android.os.Looper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,44 +13,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.location.LocationListener
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gowtham.ratingbar.RatingBar
 import com.gowtham.ratingbar.RatingBarStyle
 import com.moonface.wsee.R
-import com.moonface.wsee.checkLocationPermissions
 import com.moonface.wsee.models.Toilet
+import com.moonface.wsee.viewmodel.MainViewModel
 import java.text.DecimalFormat
-
-@SuppressLint("MissingPermission")
-@Composable
-private fun LocationUpdates(listener: LocationListener) {
-    val context = LocalContext.current
-    DisposableEffect(true) {
-        if (checkLocationPermissions(context)) {
-            val client = LocationServices.getFusedLocationProviderClient(context)
-            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000L)
-                .build()
-            client.requestLocationUpdates(locationRequest, listener, Looper.getMainLooper())
-            onDispose {
-                client.removeLocationUpdates(listener)
-            }
-        }
-        onDispose {}
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,13 +32,11 @@ fun ToiletSheet(
     toilet: Toilet,
     onClose: () -> Unit
 ) {
+    val viewModel = viewModel<MainViewModel>()
     val context = LocalContext.current
-    var myLocation by rememberSaveable { mutableStateOf<Location?>(null) }
-    LocationUpdates { myLocation = it }
 
     ModalBottomSheet(onDismissRequest = onClose) {
-        val distance =
-            if (myLocation != null) myLocation!!.distanceTo(toilet.location.toAndroidLocation()) / 1000 else 0F
+        val distance = viewModel.myLocation.distanceTo(toilet.place.location) / 1000
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -90,20 +59,16 @@ fun ToiletSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (toilet.owner != null) {
-                    Icon(
-                        painter = painterResource(toilet.owner.type.getIcon()),
-                        contentDescription = "owner type icon",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = toilet.owner.type.value.replaceFirstChar {
-                            if (it.isLowerCase()) it.titlecase() else it.toString()
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Icon(
+                    painter = painterResource(toilet.place.type.getIcon()),
+                    contentDescription = "place type icon",
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = toilet.place.type.getLabel(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(text = "•")
                 if (toilet.rating != null) {
                     Text(
@@ -144,7 +109,7 @@ fun ToiletSheet(
                 )
             }
 
-            Button(onClick = { toilet.location.navigate(context) }) {
+            Button(onClick = { toilet.place.location.navigate(context) }) {
                 Icon(
                     painter = painterResource(R.drawable.directions),
                     contentDescription = "directions",
