@@ -5,3 +5,7 @@ data class CreateToilet(
     val place: Place,
     val rating: Int,
 )
+
+data class CreateReview(
+    val rating: Int
+)

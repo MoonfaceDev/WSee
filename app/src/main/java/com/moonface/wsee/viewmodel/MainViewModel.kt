@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.moonface.wsee.models.CreateReview
 import com.moonface.wsee.models.CreateToilet
 import com.moonface.wsee.models.Location
 import com.moonface.wsee.models.Toilet
@@ -30,5 +31,9 @@ class MainViewModel : ViewModel() {
 
     fun createToilet(createToilet: CreateToilet) = viewModelScope.launch {
         repository.create(createToilet)
+    }
+
+    fun createReview(toiletId: String, createReview: CreateReview) = viewModelScope.launch {
+        repository.createReview(toiletId, createReview)
     }
 }

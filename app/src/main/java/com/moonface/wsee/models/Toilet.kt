@@ -85,6 +85,7 @@ data class Place(
 )
 
 data class Toilet(
+    val id: String,
     val cost: Cost? = null,
     val place: Place,
     val rating: Float? = null,

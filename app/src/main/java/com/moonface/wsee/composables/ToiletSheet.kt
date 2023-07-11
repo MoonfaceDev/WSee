@@ -7,12 +7,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -109,14 +117,39 @@ fun ToiletSheet(
                 )
             }
 
-            Button(onClick = { toilet.place.location.navigate(context) }) {
-                Icon(
-                    painter = painterResource(R.drawable.directions),
-                    contentDescription = "directions",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Directions")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                    onClick = { toilet.place.location.navigate(context) }
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.directions),
+                        contentDescription = "directions",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = "Directions")
+                }
+                var rateDialogOpen by remember { mutableStateOf(false) }
+
+                if (rateDialogOpen) {
+                    RateToiletDialog(toiletId = toilet.id, onClose = { rateDialogOpen = false })
+                }
+                OutlinedButton(
+                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                    onClick = { rateDialogOpen = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = "star",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = "Rate")
+                }
             }
         }
     }
